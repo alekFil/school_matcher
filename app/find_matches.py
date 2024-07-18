@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import numpy as np
 from sklearn.metrics.pairwise import (
     cosine_similarity,
@@ -16,6 +18,7 @@ from app.utils.preprocess_functions import (
     simple_preprocess_text,
 )
 
+# Загрузка необходимых ресурсов
 VECTORIZER = load_resources("vectorizer", "joblib")
 REFERENCE_VEC = load_resources("reference_vec", "joblib")
 REFERENCE_ID = load_resources("reference_id", "joblib")
@@ -27,7 +30,27 @@ BLACKLIST_OPF = load_resources("blacklist_opf", "joblib")
 STOP_WORDS_LIST = load_resources("stop_words_list", "joblib")
 
 
-def calculate_similarity(x, y, method="cosine"):
+def calculate_similarity(
+    x: np.ndarray, y: np.ndarray, method: str = "cosine"
+) -> np.ndarray:
+    """
+    Вычисляет схожесть между двумя векторами с использованием указанного метода.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Первый вектор.
+    y : np.ndarray
+        Второй вектор.
+    method : str, optional
+        Метод вычисления схожести. Может быть "cosine", "euclidean"
+        или "manhattan" (default is "cosine").
+
+    Returns
+    -------
+    np.ndarray
+        Массив схожестей.
+    """
     if method == "cosine":
         return cosine_similarity(x, y)
     elif method == "euclidean":
@@ -39,22 +62,55 @@ def calculate_similarity(x, y, method="cosine"):
 
 
 def find_matches(
-    x_vec,
-    x_region,
-    reference_id,
-    reference_vec,
-    reference_region,
-    top_k=5,
-    threshold=0.9,
-    filter_by_region=True,
-    empty_region="all",
-    similarity_method="cosine",
-):
+    x_vec: np.ndarray,
+    x_region: np.ndarray,
+    reference_id: np.ndarray,
+    reference_vec: np.ndarray,
+    reference_region: np.ndarray,
+    top_k: int = 5,
+    threshold: float = 0.9,
+    filter_by_region: bool = True,
+    empty_region: str = "all",
+    similarity_method: str = "cosine",
+) -> Tuple[List[List[Tuple[Union[int, None], float]]], List[np.ndarray]]:
+    """
+    Находит совпадения для заданных векторов с использованием
+    различных методов схожести и фильтрации по регионам.
+
+    Parameters
+    ----------
+    x_vec : np.ndarray
+        Векторизованные названия школ.
+    x_region : np.ndarray
+        Регионы для векторов названий школ.
+    reference_id : np.ndarray
+        Идентификаторы референсных школ.
+    reference_vec : np.ndarray
+        Векторизованные референсные названия школ.
+    reference_region : np.ndarray
+        Регионы для референсных школ.
+    top_k : int, optional
+        Количество топ-совпадений, которые нужно вернуть (default is 5).
+    threshold : float, optional
+        Порог схожести для отбора совпадений (default is 0.9).
+    filter_by_region : bool, optional
+        Флаг для включения фильтрации по регионам (default is True).
+    empty_region : str, optional
+        Способ обработки, если в текущем регионе нет школ для сравнения (default is "all").
+    similarity_method : str, optional
+        Метод вычисления схожести (default is "cosine").
+
+    Returns
+    -------
+    Tuple[List[List[Tuple[Union[int, None], float]]], List[np.ndarray]]
+        Список совпадений и список для ручной обработки.
+    """
     y_pred = []
     manual_review = []
 
     for i, x in enumerate(x_vec):
-        # Фильтруем reference_vec и reference_id по текущему региону, если включена фильтрация по регионам
+        # Фильтруем reference_vec и reference_id по текущему региону,
+        # если включена фильтрация по регионам
         if filter_by_region:
             # Фильтруем reference_vec и reference_id по текущему региону
             current_region = x_region[i]
@@ -70,7 +126,8 @@ def find_matches(
                     filtered_reference_id = reference_id
             else:
                 if filtered_reference_vec.shape[0] == 0:
-                    # Если в текущем регионе нет школ для сравнения, то помечаем на ручную обработку
+                    # Если в текущем регионе нет школ для сравнения,
+                    # то помечаем на ручную обработку
                     manual_review.append(x)
                     top_matches = [(None, 0.0)] * top_k
                     y_pred.append(top_matches)
@@ -98,7 +155,7 @@ def find_matches(
                 if len(top_matches) < top_k:
                     top_matches += [(None, 0.0)] * (top_k - len(top_matches))
         else:  # Для других методов расстояний (евклидово и манхэттенское)
-            if max_similarity > -threshold:  # Обратите внимание на инверсию
+            if max_similarity > -threshold:  # Обратим внимание на инверсию
                 manual_review.append(x)
                 top_matches = [(None, 0.0)] * top_k
             else:
@@ -113,8 +170,35 @@ def find_matches(
     return y_pred, manual_review
 
 
-def predict(school_name: str, region_name: str):
-    def preprocess_name(x):
+def predict(school_name: str) -> List[int]:
+    """
+    Предсказывает соответствия для заданного названия школы.
+
+    Parameters
+    ----------
+    school_name : str
+        Название школы.
+
+    Returns
+    -------
+    List[int]
+        Список id наиболее вероятных совпадений.
+    """
+
+    def preprocess_name(x: str) -> str:
+        """
+        Предобрабатывает название школы.
+
+        Parameters
+        ----------
+        x : str
+            Название школы.
+
+        Returns
+        -------
+        str
+            Предобработанное название школы.
+        """
         x = simple_preprocess_text(x)
         x = replace_numbers_with_text(x)
         x = abbr_preprocess_text(x, ABBR_DICT, False, False, True, False)
@@ -124,7 +208,20 @@ def predict(school_name: str, region_name: str):
         x = remove_short_words(x)
         return x
 
-    def preprocess_region(x):
+    def preprocess_region(x: str) -> str:
+        """
+        Предобрабатывает регион школы.
+
+        Parameters
+        ----------
+        x : str
+            Название школы.
+
+        Returns
+        -------
+        str
+            Регион школы.
+        """
         x = simple_preprocess_text(x)
         x = replace_numbers_with_text(x)
         x = abbr_preprocess_text(x, ABBR_DICT, False, False, True, False)
@@ -133,9 +230,8 @@ def predict(school_name: str, region_name: str):
     vectorized_preprocess = np.vectorize(preprocess_name)
     vectorized_region = np.vectorize(preprocess_region)
 
-    x = [school_name + ", " + region_name]
-    x = vectorized_preprocess(np.array(x))
-    region = vectorized_region(np.array(x))
+    x = vectorized_preprocess(np.array([school_name]))
+    region = vectorized_region(np.array([school_name]))
 
     # Векторизация текста
     x_vec = VECTORIZER.transform(x)
@@ -153,19 +249,9 @@ def predict(school_name: str, region_name: str):
         similarity_method="cosine",
     )
 
-    def get_name(id):
-        if id is None:
-            return None
-        return str(REFERENCE_NAME[np.where(REFERENCE_ID == id)[0]][0])
-
     # Преобразование numpy типов в стандартные Python типы и обработка None
-    converted_results = [
-        {
-            "id": int(id_) if id_ is not None else None,
-            "score": float(score),
-            "name": get_name(id_),
-        }
-        for id_, score in y_pred[0]
+    converted_results_list = [
+        int(id_) if id_ is not None else None for id_, _ in y_pred[0]
     ]
 
-    return converted_results
+    return converted_results_list

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -10,33 +10,20 @@ app = FastAPI()
 
 class SchoolRequest(BaseModel):
     school_name: str
-    region: str
 
 
-class MatchResponse(BaseModel):
-    id: Optional[int]
-    score: float
-    name: str
-
-
-@app.post("/find_matches/", response_model=List[MatchResponse])
-def find_school_matches(request: SchoolRequest):
+@app.post("/find_matches/", response_model=List[int])
+def find_school_matches(request: SchoolRequest) -> List[int]:
     """
-    Find school matches based on the given school name and region.
+    Функция для нахождения соответствие названия школы записи в базе данных.
+    Возвращает список id наиболее вероятных совпадений, от большего
+    к меньшему
 
-    - **school_name**: Name of the school
-    - **region**: Region of the school
+    - **school_name**: str, название школы и регион, разделенные запятой
 
-    Example response:
-    [
-        {"id": 92, "score": 0.7885993344073151, "name": "ляпкина"},
-        {"id": 1842, "score": 0.4511433586943585, "name": ""спортивный школа олимпийский резерв один""},
-        {"id": null, "score": 0.4511433586943585, "name": ""спортивный школа олимпийский резерв один""},
-        {"id": 218, "score": 0.4511433586943585, "name": ""спортивный школа олимпийский резерв один""},
-        {"id": null, "score": 0.4511433586943585, "name": ""спортивный школа олимпийский резерв один""}
-    ]
+    Example response: [92, 1842, 152, 218, 51]
     """
-    matches = predict(request.school_name, request.region)
+    matches = predict(request.school_name)
     if matches:
         return matches
     else:
