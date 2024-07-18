@@ -83,9 +83,9 @@
 
 3. Создание файла `.env` в корне проекта с содержимым:
    ```text
-   API_URL = http://localhost:5001/
+   API_URL = http://localhost:8000/
    ```
-   
+
 4. Запуск скриптов `run_local_windows.bat` (windows) или `run_local.sh` (linux).
 
 ## Контакты

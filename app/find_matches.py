@@ -251,7 +251,9 @@ def predict(school_name: str) -> List[int]:
 
     # Преобразование numpy типов в стандартные Python типы и обработка None
     converted_results_list = [
-        int(id_) if id_ is not None else None for id_, _ in y_pred[0]
+        int(id_) if id_ is not None else -1 for id_, _ in y_pred[0]
     ]
+
+    print(converted_results_list)
 
     return converted_results_list
