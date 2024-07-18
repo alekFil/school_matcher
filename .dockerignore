@@ -1,1 +1,5 @@
-.env
+*
+!/app
+!Dockerfile
+!README.md
+!requirements.txt
