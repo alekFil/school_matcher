@@ -4,7 +4,7 @@ import requests
 import streamlit as st
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 api_url = os.getenv("API_URL")
 
 st.set_page_config(layout="wide")
