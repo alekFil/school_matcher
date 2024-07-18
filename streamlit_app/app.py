@@ -10,9 +10,6 @@ load_dotenv(dotenv_path=".env")
 # Получение URL API из переменных окружения
 api_url = os.getenv("API_URL")
 
-# Установка конфигурации страницы Streamlit
-st.set_page_config(layout="wide")
-
 st.title("Имплементация сервиса распознавания наименований школ")
 school_name = st.text_input("Введите название школы")
 
