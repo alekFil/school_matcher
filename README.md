@@ -78,7 +78,7 @@
 
 2. Установка зависимостей:
    ```sh
-    pip install -r requirements_small.txt
+    pip install -r requirements.txt
     ```
 
 3. Создание файла `.env` в корне проекта с содержимым:
